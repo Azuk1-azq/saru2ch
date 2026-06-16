@@ -1,0 +1,273 @@
+/* ===== リセット & ベース ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f0e0d6;
+  --bg2: #fffaf0;
+  --bg3: #fff0e0;
+  --border: #c0a890;
+  --border2: #d0b090;
+  --header-bg: #800000;
+  --header-fg: #fff;
+  --link: #0000dd;
+  --link-vis: #551a8b;
+  --name-color: #117743;
+  --trip-color: #117743;
+  --no-color: #666;
+  --date-color: #555;
+  --id-color: #888;
+  --anchor: #dd0000;
+  --form-bg: #f5f5e8;
+  --highlight: #fff0a0;
+  --btn-bg: #c0a070;
+  --btn-hover: #a07040;
+  --btn-fg: #fff;
+  --font: "Meiryo", "MS Gothic", "Osaka", sans-serif;
+}
+
+body {
+  background: var(--bg);
+  font-family: var(--font);
+  font-size: 13px;
+  color: #222;
+  min-height: 100vh;
+}
+
+a { color: var(--link); }
+a:visited { color: var(--link-vis); }
+a:hover { text-decoration: underline; }
+
+/* ===== ヘッダー ===== */
+#header {
+  background: var(--header-bg);
+  color: var(--header-fg);
+  padding: 6px 12px;
+  border-bottom: 3px solid #600000;
+}
+.header-inner { display: flex; align-items: baseline; gap: 12px; }
+#header h1 { font-size: 18px; font-weight: bold; }
+.header-sub { font-size: 12px; opacity: 0.85; }
+.header-sub a { color: #ffd0d0; }
+
+/* ===== メイン ===== */
+#main {
+  max-width: 960px;
+  margin: 10px auto;
+  padding: 0 8px;
+}
+
+/* ===== 板ナビ ===== */
+#board-nav {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.board-label { color: #888; font-size: 12px; }
+.board-item {
+  cursor: pointer;
+  padding: 2px 10px;
+  border: 1px solid var(--border2);
+  background: #fff;
+  border-radius: 2px;
+  font-size: 12px;
+  user-select: none;
+  transition: background 0.1s;
+}
+.board-item:hover { background: #ffe0c0; }
+.board-item.active {
+  background: var(--header-bg);
+  color: #fff;
+  border-color: #600000;
+}
+
+/* ===== フォーム ===== */
+#new-thread-form, #post-form {
+  background: var(--form-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--header-bg);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.form-title {
+  font-weight: bold;
+  font-size: 12px;
+  color: #600;
+  margin-bottom: 8px;
+}
+.form-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.form-row input[type="text"] {
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-family: var(--font);
+  font-size: 13px;
+}
+.form-row textarea {
+  flex: 1;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-family: var(--font);
+  font-size: 13px;
+  resize: vertical;
+}
+.form-actions {
+  justify-content: flex-end;
+  align-items: center;
+}
+button {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid #806040;
+  padding: 4px 16px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+button:hover { background: var(--btn-hover); }
+button:disabled { opacity: 0.5; cursor: default; }
+.form-msg { font-size: 12px; color: #c00; margin-top: 4px; min-height: 16px; }
+#post-count-label { font-size: 12px; color: #888; margin-right: auto; }
+
+/* ===== スレッド一覧 ===== */
+#thread-list-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px 160px;
+  gap: 4px;
+  background: var(--header-bg);
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 2px 2px 0 0;
+}
+#thread-list {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top: none;
+}
+.thread-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px 160px;
+  gap: 4px;
+  padding: 5px 8px;
+  border-bottom: 1px dotted var(--border2);
+  align-items: center;
+  transition: background 0.1s;
+}
+.thread-row:hover { background: #fff5e8; }
+.thread-row:last-child { border-bottom: none; }
+.tl-num { color: var(--no-color); font-size: 11px; text-align: right; }
+.tl-title a { font-weight: bold; }
+.tl-count { text-align: center; color: #555; }
+.tl-date { font-size: 11px; color: var(--date-color); }
+
+.loading, .no-thread {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+}
+
+/* ===== スレッドタイトルバー ===== */
+#thread-title-bar {
+  background: var(--header-bg);
+  color: #fff;
+  padding: 6px 10px;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+}
+
+/* ===== 投稿ブロック ===== */
+.post-block {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  transition: background 0.2s;
+}
+.post-block:hover { background: #fffdf5; }
+.post-block.highlight {
+  background: var(--highlight) !important;
+  border-color: #c0a000;
+}
+
+.post-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  font-size: 12px;
+  border-bottom: 1px dotted #ddd;
+  padding-bottom: 3px;
+}
+.post-no {
+  font-weight: bold;
+  color: var(--no-color);
+  cursor: pointer;
+  min-width: 28px;
+}
+.post-no::before { content: ">>"; font-size: 10px; color: #aaa; }
+.post-name { color: var(--name-color); font-weight: bold; }
+.post-date { color: var(--date-color); }
+.post-id { color: var(--id-color); }
+
+.post-body {
+  line-height: 1.6;
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 2px 0 0 4px;
+}
+
+.anchor-link {
+  color: var(--anchor);
+  text-decoration: none;
+  font-weight: bold;
+}
+.anchor-link:hover { text-decoration: underline; }
+
+.post-form-bottom-link {
+  text-align: right;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+/* ===== フッター ===== */
+#footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 11px;
+  color: #888;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 600px) {
+  #thread-list-header,
+  .thread-row {
+    grid-template-columns: 32px 1fr 44px;
+  }
+  .tl-date, #thread-list-header span:last-child { display: none; }
+
+  .post-header { gap: 4px; }
+  .post-id { display: none; }
+}

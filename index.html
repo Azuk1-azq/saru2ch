@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>掲示板 - スレッド一覧</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="header">
+    <div class="header-inner">
+      <h1>📋 猿2ch</h1>
+      <span class="header-sub">みんなの広場</span>
+    </div>
+  </div>
+
+  <div id="main">
+    <!-- 板一覧 / カテゴリ -->
+    <div id="board-nav">
+      <span class="board-label">板：</span>
+      <span class="board-item active" data-board="general">雑談</span>
+      <span class="board-item" data-board="news">ニュース</span>
+      <span class="board-item" data-board="tech">技術</span>
+      <span class="board-item" data-board="game">ゲーム</span>
+    </div>
+
+    <!-- スレッド作成 -->
+    <div id="new-thread-form">
+      <div class="form-title">➕ 新スレッドを立てる</div>
+      <div class="form-row">
+        <input type="text" id="thread-title" placeholder="スレッドタイトル（必須）" maxlength="64">
+      </div>
+      <div class="form-row">
+        <input type="text" id="thread-name" placeholder="名前（省略で名無しさん）" maxlength="32">
+        <input type="text" id="thread-trip" placeholder="#トリップ（任意）" maxlength="16">
+      </div>
+      <div class="form-row">
+        <textarea id="thread-body" placeholder="本文（最初の投稿）" maxlength="1000" rows="3"></textarea>
+      </div>
+      <div class="form-row form-actions">
+        <button id="btn-create-thread" onclick="createThread()">スレッドを立てる</button>
+      </div>
+      <div id="thread-form-msg" class="form-msg"></div>
+    </div>
+
+    <!-- スレッド一覧 -->
+    <div id="thread-list-header">
+      <span class="tl-num">No.</span>
+      <span class="tl-title">タイトル</span>
+      <span class="tl-count">レス数</span>
+      <span class="tl-date">最終更新</span>
+    </div>
+    <div id="thread-list">
+      <div class="loading">読み込み中…</div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <a href="https://github.com" target="_blank">GitHub Pages</a> + Firebase でできた掲示板
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, increment }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ===== ★ここにあなたのFirebase設定を貼る★ =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBKxyTHd_WFV1PpF-eaTl2U_-WMXFKaUXw",
+  authDomain: "ch-83859.firebaseapp.com",
+  projectId: "ch-83859",
+  storageBucket: "ch-83859.firebasestorage.app",
+  messagingSenderId: "709758774996",
+  appId: "1:709758774996:web:0e1cc6e143af4ac4745541",
+  measurementId: "G-N87ZLQZC1Z"
+};
+    // =================================================
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentBoard = "general";
+
+    // トリップ生成（簡易版）
+    async function generateTrip(key) {
+      if (!key) return "";
+      const encoder = new TextEncoder();
+      const data = encoder.encode(key);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const b64 = btoa(String.fromCharCode(...hashArray));
+      return "◆" + b64.replace(/[+/=]/g, "").slice(0, 10);
+    }
+
+    // 日付フォーマット
+    function formatDate(ts) {
+      if (!ts) return "-";
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // スレッド一覧をリアルタイム取得
+    function loadThreads(board) {
+      const threadList = document.getElementById("thread-list");
+      threadList.innerHTML = '<div class="loading">読み込み中…</div>';
+
+      const q = query(
+        collection(db, "boards", board, "threads"),
+        orderBy("lastPostAt", "desc")
+      );
+
+      onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          threadList.innerHTML = '<div class="no-thread">スレッドがありません。最初のスレッドを立ててみよう！</div>';
+          return;
+        }
+        threadList.innerHTML = "";
+        let i = 1;
+        snapshot.forEach(docSnap => {
+          const t = docSnap.data();
+          const div = document.createElement("div");
+          div.className = "thread-row";
+          div.innerHTML = `
+            <span class="tl-num">${i++}</span>
+            <span class="tl-title">
+              <a href="thread.html?board=${board}&id=${docSnap.id}">${escapeHtml(t.title)}</a>
+            </span>
+            <span class="tl-count">${t.postCount || 1}</span>
+            <span class="tl-date">${formatDate(t.lastPostAt)}</span>
+          `;
+          threadList.appendChild(div);
+        });
+      });
+    }
+
+    // スレッド作成
+    window.createThread = async function() {
+      const title = document.getElementById("thread-title").value.trim();
+      const nameRaw = document.getElementById("thread-name").value.trim();
+      const tripKey = document.getElementById("thread-trip").value.replace(/^#/, "").trim();
+      const body = document.getElementById("thread-body").value.trim();
+      const msg = document.getElementById("thread-form-msg");
+
+      if (!title) { msg.textContent = "タイトルを入力してください"; return; }
+      if (!body) { msg.textContent = "本文を入力してください"; return; }
+
+      const btn = document.getElementById("btn-create-thread");
+      btn.disabled = true;
+      msg.textContent = "送信中…";
+
+      try {
+        const trip = await generateTrip(tripKey);
+        const name = nameRaw || "名無しさん";
+        const displayName = trip ? `${name}${trip}` : name;
+        const now = serverTimestamp();
+
+        const threadRef = await addDoc(collection(db, "boards", currentBoard, "threads"), {
+          title,
+          postCount: 1,
+          lastPostAt: now,
+          createdAt: now,
+        });
+
+        await addDoc(collection(db, "boards", currentBoard, "threads", threadRef.id, "posts"), {
+          no: 1,
+          name: displayName,
+          body,
+          createdAt: now,
+        });
+
+        document.getElementById("thread-title").value = "";
+        document.getElementById("thread-name").value = "";
+        document.getElementById("thread-trip").value = "";
+        document.getElementById("thread-body").value = "";
+        msg.textContent = "スレッドを立てました！";
+        setTimeout(() => msg.textContent = "", 3000);
+      } catch(e) {
+        console.error(e);
+        msg.textContent = "エラーが発生しました: " + e.message;
+      }
+      btn.disabled = false;
+    };
+
+    // 板切り替え
+    document.querySelectorAll(".board-item").forEach(el => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".board-item").forEach(x => x.classList.remove("active"));
+        el.classList.add("active");
+        currentBoard = el.dataset.board;
+        loadThreads(currentBoard);
+      });
+    });
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    window.escapeHtml = escapeHtml;
+    window.db = db;
+    window.currentBoard = () => currentBoard;
+
+    loadThreads(currentBoard);
+  </script>
+</body>
+</html>
